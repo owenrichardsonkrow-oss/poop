@@ -1,0 +1,15 @@
+# Demos are large and contain other players' match data
+demos/*
+!demos/.gitkeep
+*.dem
+
+# Output
+*.csv
+report*.txt
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
