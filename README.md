@@ -117,7 +117,18 @@ ROADMAP.md          prioritised work, in order
 docs/DEMO_NOTES.md  coordinate conventions, event fields, false-positive log
 tests/              pure-math tests, no demo required
 demos/              put .dem files here (gitignored)
+dossier/            teammate playstyle profiling — unrelated to the tool
 ```
+
+## Not part of the tool: `dossier/`
+
+`dossier/` holds a method and blank templates for **performance and playstyle
+profiling of your own teammates** — typing players so a stratbook can be built
+around them. It is a separate project that happens to live in the same repo.
+It does not use `demo_audit.py`, and `demo_audit.py` must never be pointed at
+teammates. See `dossier/README.md`.
+
+Filled-in dossiers are gitignored; this repo is public.
 
 ## A word on using this
 

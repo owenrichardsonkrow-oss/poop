@@ -13,3 +13,11 @@ __pycache__/
 .venv/
 venv/
 .pytest_cache/
+
+# Filled-in teammate dossiers. This repo is PUBLIC — real names, Steam IDs
+# and candid assessments of named people must never be pushed.
+# Deny by default: only the blank templates and the method doc are tracked.
+dossier/*
+!dossier/README.md
+!dossier/TEMPLATE_PLAYER.md
+!dossier/TEMPLATE_ROSTER.md
