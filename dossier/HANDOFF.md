@@ -103,6 +103,14 @@ the entire reason this is being handed to you.
    the filename names. Mis-paired IDs put every statistic on the wrong
    person, and nothing downstream would reveal it.
 
+   **Pairing VERIFIED 2026-08-22 by the local session**, independently of
+   the order: Faceit's own nickname endpoint
+   (`https://www.faceit.com/api/users/v1/nicknames/<handle>` →
+   `payload.games.cs2.game_id`) returned each handle's Steam64, and all
+   four matched the Leetify URLs the user supplied. Method and endpoints
+   are in `dossier/DATA_ACCESS.md` (tracked). Collection has started
+   locally; see `ROSTER.md` (gitignored) for state.
+
    **The four handles are deliberately not written in this file** — it is
    tracked in a public repo, and there is no reason to publish the
    association between four named people and a document about profiling
