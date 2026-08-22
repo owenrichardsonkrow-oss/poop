@@ -131,7 +131,7 @@ csstats.gg's `modes=ESEA` tag misses current ESEA seasons named this way; classi
 
 ## 8. Leetify per-match detail — VERIFIED (curl, unauthenticated, 2026-08-22)
 
-This is the route to competitive-match opening duels, utility and mechanics for **every player in a match**, as long as one linked player was in it. It does not provide positions (csstats only).
+This is the route to competitive-match opening duels, clutches, utility and mechanics for **every player in a match**, as long as one Leetify-linked player was in it. It does not provide positions (csstats only).
 
 ```
 https://api-public.cs-prod.leetify.com/v3/profile/matches?steam64_id=<steam64>
@@ -139,11 +139,16 @@ https://api-public.cs-prod.leetify.com/v3/profile/matches?steam64_id=<steam64>
 The linked player's 100 most recent matches (no paging found): `id` (Leetify uuid), `finished_at`, `data_source` (`faceit` | `matchmaking` | `matchmaking_competitive` | `matchmaking_wingman`), `data_source_match_id` (the Faceit match id for Faceit matches — join key to Faceit history), `map_name`, `team_scores`.
 
 ```
-https://api.leetify.com/api/games/<leetify uuid>
+https://api.leetify.com/api/games/<leetify uuid>                  all ten players' per-match stats
+https://api.leetify.com/api/games/<leetify uuid>/opening-duels    one record per round
+https://api.leetify.com/api/games/<leetify uuid>/clutches         one record per 1vX attempt
 ```
-All ten players: `playerStats[]` (kills/deaths/damage, KAST, HLTV and Leetify ratings by side, pre-aim, reaction time, time-to-kill, first-bullet accuracy, counter-strafe ratio, spray accuracy, flash/HE/molotov/smoke stats, utility on death, trade kill / traded death opportunities-attempts-successes, multikills) and `openingDuelPlayerStats[]` (attempt %, success %, trade %, aggression success — overall and per side). Also `details` (tickrate, gameMode), `gamePlayerRoundSkeletonStats`, `replayFile`.
-`/v2/matches/<uuid>` on api-public is a smaller variant without the opening-duel block.
+`playerStats[]`: kills/deaths/damage, KAST, HLTV and Leetify ratings by side, pre-aim, reaction time (seconds), time-to-kill, first-bullet accuracy (null for some players), counter-strafe ratio, spray accuracy, flash/HE/molotov/smoke stats, utility on death, trade-kill / traded-death opportunities-attempts-successes, multikills, `tRoundsWon/Lost`, `ctRoundsWon/Lost`.
+`openingDuelPlayerStats[]` in the same payload is **all zeros — do not use it**. Use `/opening-duels` instead: `round`, `tick`, `roundTime` (s), `attackerSteam64Id`, `victimSteam64Id`, `attackerTeamNumber`/`victimTeamNumber` (2 = T, 3 = CT at that round — sides already swapped), `attackerWeapon.itemName`, `traded`. Attempt % = (kills + deaths) / rounds on that side, using the `tRounds`/`ctRounds` sums from `playerStats`.
+`/clutches`: `steam64Id`, `roundNumber`, `handicap` (0 = 1v1, −1 = 1v2, …), `clutchesWon`, `totalKills`, `startedWithTrade`. `/highlights` needs auth. `/v2/matches/<uuid>` on api-public is a smaller variant without these.
 
-Use: take a linked player's list → keep `faceit` rows whose Faceit id is tiered league/tournament/hub in `raw/faceit_history/` → fetch each game → one row per player per match. Limit: 100 most recent per linked player, so for the Ashland three (only Dafish is linked) it reaches the NECC Spring 2026 season, not Fall 2025.
+Coverage limits found: (a) 100 most recent matches per linked player; (b) Leetify keeps **one map per Faceit match id** — in a BO3 the other two maps are not ingested; (c) several NECC series a linked player played were never ingested at all. Expansion trick: pull the rosters of every gold-tier match from `https://www.faceit.com/api/match/v2/match/<matchId>` (`teams.faction1/2.roster[].gameId` = Steam64), query the match list for every roster member, and join on `data_source_match_id` — any linked player in the match exposes its Leetify uuid.
 
-csstats cannot ingest Faceit matches by URL (the "add a match" box takes Steam IDs and Valve share codes only); Faceit's own demo download needs a logged-in scope and the listed CDN host does not resolve from here.
+Rate limit (2026-08-22): api-public answers ~10 requests, then 429 for ~30 s. Pace at ≥3 s per request with a 40 s back-off on 429. api.leetify.com tolerated one request per ~2.5 s.
+
+csstats cannot ingest Faceit matches by URL (the "add a match" box takes Steam IDs and Valve share codes only); Faceit's own demo download returns 403 "no valid scope" even when logged in, and the listed CDN host does not resolve from here.
