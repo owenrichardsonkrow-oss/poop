@@ -22,3 +22,4 @@ dossier/*
 !dossier/TEMPLATE_PLAYER.md
 !dossier/TEMPLATE_ROSTER.md
 !dossier/HANDOFF.md
+!dossier/DATA_ACCESS.md
