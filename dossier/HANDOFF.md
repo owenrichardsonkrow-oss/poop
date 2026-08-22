@@ -68,7 +68,7 @@ Present locally but **gitignored and empty of data**:
 
 | File | State |
 |---|---|
-| `dossier/PLAYER_<handle>.md` x4 | Skeletons. Handle + Faceit URL only. All stats blank. |
+| `dossier/PLAYER_<handle>.md` x4 | Skeletons. Handle, Faceit URL, **Steam64 / SteamID3 / legacy ID, and Leetify URL** now recorded. All stats still blank. |
 | `dossier/ROSTER.md` | Skeleton. No data. |
 
 Nothing has been measured. No stat in this project has ever been collected.
@@ -90,8 +90,18 @@ the entire reason this is being handed to you.
 
 ## 5. The job
 
-1. **Resolve the four Faceit handles to Steam64 IDs.** The user suggested
-   [faceitfinder.com](https://faceitfinder.com); anything equivalent is fine.
+1. ~~**Resolve the four Faceit handles to Steam64 IDs.**~~ **DONE** — the
+   user supplied all four Leetify profile URLs on 2026-08-20. Each
+   `PLAYER_*.md` skeleton now carries that player's Steam64, SteamID3,
+   legacy ID and Leetify link.
+
+   **But the handle-to-ID pairing is UNVERIFIED.** The two lists were
+   supplied in separate messages and matched by *order*, not by any lookup —
+   the web session could not reach Steam or Leetify to confirm. Each
+   skeleton says so at the top. **Confirm the pairing before collecting
+   anything**: open each Leetify link and check the profile is the player
+   the filename names. Mis-paired IDs put every statistic on the wrong
+   person, and nothing downstream would reveal it.
 
    **The four handles are deliberately not written in this file** — it is
    tracked in a public repo, and there is no reason to publish the
