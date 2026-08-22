@@ -128,3 +128,22 @@ https://www.faceit.com/api/match/v2/match/<matchId>
 `payload.entity.type` (`championship` | `hub` | `matchmaking`), `payload.entity.name` (e.g. `S58 NA Open9-10 East A - Regular Season`), `payload.teams.faction1/2.name`, `payload.demoURLs` (Faceit demos — the league demo source). Resolve once per distinct `competitionId`.
 
 csstats.gg's `modes=ESEA` tag misses current ESEA seasons named this way; classify from Faceit's entity name instead. GamersClub (`cs.gamersclub.gg/player/<id>`): profile shows level/rating/last match; aggregates are subscription-gated even when signed in.
+
+## 8. Leetify per-match detail — VERIFIED (curl, unauthenticated, 2026-08-22)
+
+This is the route to competitive-match opening duels, utility and mechanics for **every player in a match**, as long as one linked player was in it. It does not provide positions (csstats only).
+
+```
+https://api-public.cs-prod.leetify.com/v3/profile/matches?steam64_id=<steam64>
+```
+The linked player's 100 most recent matches (no paging found): `id` (Leetify uuid), `finished_at`, `data_source` (`faceit` | `matchmaking` | `matchmaking_competitive` | `matchmaking_wingman`), `data_source_match_id` (the Faceit match id for Faceit matches — join key to Faceit history), `map_name`, `team_scores`.
+
+```
+https://api.leetify.com/api/games/<leetify uuid>
+```
+All ten players: `playerStats[]` (kills/deaths/damage, KAST, HLTV and Leetify ratings by side, pre-aim, reaction time, time-to-kill, first-bullet accuracy, counter-strafe ratio, spray accuracy, flash/HE/molotov/smoke stats, utility on death, trade kill / traded death opportunities-attempts-successes, multikills) and `openingDuelPlayerStats[]` (attempt %, success %, trade %, aggression success — overall and per side). Also `details` (tickrate, gameMode), `gamePlayerRoundSkeletonStats`, `replayFile`.
+`/v2/matches/<uuid>` on api-public is a smaller variant without the opening-duel block.
+
+Use: take a linked player's list → keep `faceit` rows whose Faceit id is tiered league/tournament/hub in `raw/faceit_history/` → fetch each game → one row per player per match. Limit: 100 most recent per linked player, so for the Ashland three (only Dafish is linked) it reaches the NECC Spring 2026 season, not Fall 2025.
+
+csstats cannot ingest Faceit matches by URL (the "add a match" box takes Steam IDs and Valve share codes only); Faceit's own demo download needs a logged-in scope and the listed CDN host does not resolve from here.
