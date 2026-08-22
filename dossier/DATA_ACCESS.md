@@ -104,3 +104,27 @@ match counts / win %. Get those from csstats.gg.
 One Faceit call + one Leetify call per player is the whole automated
 footprint. Everything csstats comes from Owen's own browser. No loops, no
 scraping.
+
+## 6. Data tiers (policy, 2026-08-22)
+
+**Competitive matches are the base layer; pugs fill gaps.** Order of authority for any number in a profile:
+
+1. **Official / league / tournament / hub** — HLTV-recorded matches, ESEA league seasons (Faceit championships named like `S58 NA Open… - Regular Season`), Faceit tournaments and cups, Faceit hubs, GamersClub championships, and any future third-party competition. A player who has these is typed from these.
+2. **Faceit matchmaking** — the comparable pug pool. Used to fill signals the competitive sample does not contain, and for players with no competitive history.
+3. **Valve Premier / Competitive** — last resort; systematically inflates rating vs Faceit for the players checked (Owen 1.18 → 1.04, Dafish 1.20 → 1.09).
+
+Window: 12 months. Every profile states which tier each number came from.
+
+## 7. Faceit match history and competition resolution — VERIFIED (curl only; PowerShell's web client is Cloudflare-blocked)
+
+```
+https://www.faceit.com/api/stats/v1/stats/time/users/<FACEIT_UUID>/games/cs2?size=100&page=<n>&from=<epoch_ms>
+```
+Per-match stat rows, newest first, paged. Fields: `matchId`, `competitionId`, `date` (ms), `i1` map, `i18` score, `i6` kills, `i7` assists, `i8` deaths, `i13` headshots, `i12` rounds, `i10` result, `c2` K/D, `c3` K/R, `c4` HS %, `c10` ADR, `i5` team name, `premade`. No competition name in the row.
+
+```
+https://www.faceit.com/api/match/v2/match/<matchId>
+```
+`payload.entity.type` (`championship` | `hub` | `matchmaking`), `payload.entity.name` (e.g. `S58 NA Open9-10 East A - Regular Season`), `payload.teams.faction1/2.name`, `payload.demoURLs` (Faceit demos — the league demo source). Resolve once per distinct `competitionId`.
+
+csstats.gg's `modes=ESEA` tag misses current ESEA seasons named this way; classify from Faceit's entity name instead. GamersClub (`cs.gamersclub.gg/player/<id>`): profile shows level/rating/last match; aggregates are subscription-gated even when signed in.

@@ -141,6 +141,23 @@ Do not re-derive numbers the commercial tools already give you for free.
 Custom parsing is only worth it later, for team-specific questions the
 public tools cannot answer — trade spacing, default setups, execute timing.
 
+### Data tiers — which matches a profile is built from
+
+Not all matches are equal. Build each profile in this order, and say in the
+file which tier each number came from:
+
+1. **Competitive** — HLTV-recorded matches, ESEA league seasons, Faceit
+   tournaments and cups, Faceit hubs, and any other organised play. This is
+   the base layer. A player who has it is typed from it.
+2. **Faceit matchmaking** — the comparable pug pool. Fills the signals the
+   competitive sample is missing, and is the base layer only for players
+   with no competitive history.
+3. **Valve Premier / Competitive** — last resort. Inflates ratings relative
+   to Faceit for the players checked so far.
+
+Twelve-month window. `DATA_ACCESS.md` §6–7 has the endpoints and the
+classification rule for Faceit competition names.
+
 ## Week-one workflow
 
 1. Collect Steam and Faceit IDs from all four teammates.
