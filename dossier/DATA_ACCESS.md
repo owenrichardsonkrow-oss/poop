@@ -147,8 +147,37 @@ https://api.leetify.com/api/games/<leetify uuid>/clutches         one record per
 `openingDuelPlayerStats[]` in the same payload is **all zeros — do not use it**. Use `/opening-duels` instead: `round`, `tick`, `roundTime` (s), `attackerSteam64Id`, `victimSteam64Id`, `attackerTeamNumber`/`victimTeamNumber` (2 = T, 3 = CT at that round — sides already swapped), `attackerWeapon.itemName`, `traded`. Attempt % = (kills + deaths) / rounds on that side, using the `tRounds`/`ctRounds` sums from `playerStats`.
 `/clutches`: `steam64Id`, `roundNumber`, `handicap` (0 = 1v1, −1 = 1v2, …), `clutchesWon`, `totalKills`, `startedWithTrade`. `/highlights` needs auth. `/v2/matches/<uuid>` on api-public is a smaller variant without these.
 
-Coverage limits found: (a) 100 most recent matches per linked player; (b) Leetify keeps **one map per Faceit match id** — in a BO3 the other two maps are not ingested; (c) several NECC series a linked player played were never ingested at all. Expansion trick: pull the rosters of every gold-tier match from `https://www.faceit.com/api/match/v2/match/<matchId>` (`teams.faction1/2.roster[].gameId` = Steam64), query the match list for every roster member, and join on `data_source_match_id` — any linked player in the match exposes its Leetify uuid.
+Coverage limits found: (a) 100 most recent matches per linked player; (b) ingestion is partial — Leetify creates a placeholder for a linked player's Faceit match on match day but its own demo fetch fails (status: error, rrorCode: download_not_available, retried for months), so most league/tournament/hub maps never become eady; some BO3s have all maps, others one. Expansion trick: pull the rosters of every gold-tier match from `https://www.faceit.com/api/match/v2/match/<matchId>` (`teams.faction1/2.roster[].gameId` = Steam64), query the match list for every roster member, and join on `data_source_match_id` — any linked player in the match exposes its Leetify uuid.
 
 Rate limit (2026-08-22): api-public answers ~10 requests, then 429 for ~30 s. Pace at ≥3 s per request with a 40 s back-off on 429. api.leetify.com tolerated one request per ~2.5 s.
 
-csstats cannot ingest Faceit matches by URL (the "add a match" box takes Steam IDs and Valve share codes only); Faceit's own demo download returns 403 "no valid scope" even when logged in, and the listed CDN host does not resolve from here.
+csstats cannot ingest Faceit matches by URL (the "add a match" box takes Steam IDs and Valve share codes only).
+
+## 9. Faceit demos → Leetify ingestion — VERIFIED WITH LIMITS (2026-08-23)
+
+Faceit's match payload lists `demoURLs` on `demos-us-east.backblaze.faceit-cdn.net` — that host has no DNS record; the real file is behind a presigned link that Faceit issues to **any logged-in user** (participation not required):
+
+```
+POST https://www.faceit.com/api/download/v2/demos/download-url      (same-origin from a faceit.com tab, session cookies)
+body {"resource_url": "<demoURL from the match payload>"}
+200 {"payload": {"download_url": "<presigned S3 link, .dem.zst>"}}   404 err_nf0 = expired
+```
+The presigned link expires after **299 seconds**. Faceit retention measured 2026-08-22/23: demos ≥ 2026-02-26 present, ≤ 2026-02-20 gone — **about 180 days, rolling**.
+
+Leetify's ingest endpoint (leetify.com/blog/faceit-demo-upload-api, CORS `*`, no auth):
+```
+POST https://api.cs-prod.leetify.com/api/faceit-demos/submit-demo-download-url    body {"url": "<presigned link>"}
+```
+**works only for recent demos.** A day-old pug parsed to `ready` in 90 s; every demo older than ~2 months (152 submitted twice, ages 51–178 days) was accepted with 200 + id and then never processed — records stay `error / download_not_available`. The community extension's source (github.com/CSNADESgg/faceit-to-leetify-extension) carries the warning "Leetify does not currently support processing demos that are older than 30 days" (its code flags > 60 days). Auth makes no difference. **Season rule: submit each official's demo to Leetify within days of the match, not weeks.**
+
+## 10. Local demo pipeline — VERIFIED end to end (2026-08-23), the gold-standard source
+
+For anything Leetify can't or won't process: download the `.dem.zst` files (in-browser — the presigned link must be minted and consumed inside the user's Faceit tab; Chrome needs the site permission "automatic multiple downloads" for batches) and parse locally.
+
+- Python 3.12 + `demoparser2`, `pandas`, `zstandard` (installed 2026-08-23; the WindowsApps `python.exe` is a Store stub — use `%LOCALAPPDATA%\Programs\Python\Python312\python.exe`).
+- ~245 MB per map compressed; ~6 s to decompress + parse per demo.
+- `player_death` (with `player=["X","Y","team_num","last_place_name"]`) gives per-kill coordinates **and named callouts**, weapon, headshot/thrusmoke/attackerblind/penetrated, distance; `smokegrenade_detonate`/`flashbang_detonate`/`hegrenade_detonate`/`inferno_startburn` give utility with coordinates; `bomb_planted` gives sites; `parse_player_info()` the roster. Sides: `team_num` 2 = T, 3 = CT at event time.
+- **Trap: `is_warmup_period` on `player_death` does not exclude warmup kills.** Derive round windows from `round_freeze_end` → `round_end` after the last `round_announce_match_start`, number rounds sequentially, and tag events by tick window. Round time = (tick − freeze_end) / 64 on Faceit.
+- Opening duel = first kill in the round window; trade = opener's killer dies ≤ 5 s later.
+
+This yields everything §§2–9 provide plus positions, and it works for any demo you saved before its 180-day Faceit expiry — the demos themselves are the archive.
